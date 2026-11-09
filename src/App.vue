@@ -1,6 +1,8 @@
 <script setup>
 import confetti from "canvas-confetti";
 import { ref } from "vue";
+import ColorPalette from "./ColorPalette.vue";
+
 const colors = ["red", "blue", "green", "yellow", "black", "white"];
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 const secretCode = ref([
@@ -184,7 +186,8 @@ function newGame() {
     </div>
 
     <div class="controls">
-      <div class="palette">
+      <ColorPalette :colors="colors" @selectColor="selectColor" />
+      <!-- <div class="palette">
         <button
           class="color red"
           @click="selectColor('red')"
@@ -215,7 +218,7 @@ function newGame() {
           @click="selectColor('white')"
           aria-label="white"
         ></button>
-      </div>
+      </div> -->
       <button class="check" @click="checkGuess">Check</button>
       <button class="check" style="padding: 0.5rem 6rem" @click="newGame">
         New Game
