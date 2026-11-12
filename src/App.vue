@@ -2,6 +2,7 @@
 import confetti from "canvas-confetti";
 import { ref } from "vue";
 import ColorPalette from "./ColorPalette.vue";
+import GameRowVue from "./GameRow.vue";
 
 const colors = ["red", "blue", "green", "yellow", "black", "white"];
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
@@ -36,8 +37,14 @@ function selectColor(color) {
 }
 
 // clear a specific slot in currentGuess (set it back to null)
-function clearSlot(index) {
-  currentGuess.value[index] = null;
+// function clearSlot(index) {
+//   currentGuess.value[index] = null;
+// }
+
+function handleClearSlot(row, slot) {
+  if (row === activeRow.value - 1) {
+    currentGuess.value[slot] = null;
+  }
 }
 
 function checkGuess() {
@@ -124,101 +131,26 @@ function newGame() {
 
     <div class="board">
       <!-- Row 10 at top of screen. For each row...  -->
-      <div class="row" v-for="n in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="n">
-        <!-- print the row number -->
-        <span class="row-number">{{ n }}</span>
-        <!-- if the row is the active row, show the current guess -->
-        <div v-if="n == activeRow" class="holes">
-          <!-- draw a button for each item in currentGuess -->
-          <button
-            v-for="(color, index) in currentGuess"
-            class="hole"
-            :key="index"
-            :style="{ backgroundColor: color }"
-            @click="clearSlot(index)"
-          ></button>
-        </div>
-        <!-- else if the row is not the active row, show the previous guesses -->
-        <!-- n counts down from 10 to 1, so if n < activeRow, it means this row is a previous guess -->
-        <div v-else-if="n < activeRow" class="holes">
-          <button
-            v-for="(color, index) in allGuesses[n - 1]"
-            class="hole"
-            :key="index"
-            :style="{ backgroundColor: color }"
-          ></button>
-        </div>
-        <!-- otherwise, show empty holes -->
-        <div v-else class="holes">
-          <button class="hole" v-for="i in 4" :key="i"></button>
-        </div>
-
-        <!-- Do basically the same thing for feedback pegs -->
-        <!-- n starts at 1, allFeedback is 0-indexed, so use allFeedback[n-1]  -->
-        <!-- feedback class is a grid, each <span> is a peg -->
-
-        <div v-if="n < activeRow" class="feedback">
-          <span
-            class="peg"
-            v-for="i in allFeedback[n - 1].blackPegs"
-            :key="'black' + i"
-            style="background-color: black"
-          ></span>
-          <span
-            class="peg"
-            v-for="i in allFeedback[n - 1].whitePegs"
-            :key="'white' + i"
-            style="background-color: white"
-          ></span>
-          <span
-            class="peg"
-            v-for="i in 4 -
-            allFeedback[n - 1].blackPegs -
-            allFeedback[n - 1].whitePegs"
-            :key="'blank' + i"
-          ></span>
-        </div>
-
-        <div v-if="n >= activeRow" class="feedback">
-          <span class="peg" v-for="i in 4" :key="i"></span>
-        </div>
-      </div>
+      <!-- <div class="row" v-for="n in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]" :key="n"> -->
+      <!-- handleClearSlot needs to know both the row and the slot in the row to clear  -->
+      <GameRowVue
+        v-for="n in [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]"
+        :rowNumber="n"
+        :guess="
+          n === activeRow
+            ? currentGuess
+            : n < activeRow
+              ? allGuesses[n - 1]
+              : [null, null, null, null]
+        "
+        :feedback="n < activeRow ? allFeedback[n - 1] : null"
+        :key="n"
+        @clearSlot="(slotIndex) => handleClearSlot(n - 1, slotIndex)"
+      />
     </div>
 
     <div class="controls">
       <ColorPalette :colors="colors" @selectColor="selectColor" />
-      <!-- <div class="palette">
-        <button
-          class="color red"
-          @click="selectColor('red')"
-          aria-label="red"
-        ></button>
-        <button
-          class="color blue"
-          @click="selectColor('blue')"
-          aria-label="blue"
-        ></button>
-        <button
-          class="color green"
-          @click="selectColor('green')"
-          aria-label="green"
-        ></button>
-        <button
-          class="color yellow"
-          @click="selectColor('yellow')"
-          aria-label="yellow"
-        ></button>
-        <button
-          class="color black"
-          @click="selectColor('black')"
-          aria-label="black"
-        ></button>
-        <button
-          class="color white"
-          @click="selectColor('white')"
-          aria-label="white"
-        ></button>
-      </div> -->
       <button class="check" @click="checkGuess">Check</button>
       <button class="check" style="padding: 0.5rem 6rem" @click="newGame">
         New Game
@@ -259,49 +191,6 @@ function newGame() {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.row-number {
-  width: 1.25rem;
-  text-align: right;
-  font-size: 0.8rem;
-  color: #888;
-}
-
-.holes {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.hole {
-  width: clamp(2rem, 12vw, 2.75rem);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 2px solid #666;
-  background: #d8d8d8;
-  cursor: pointer;
-}
-
-.feedback {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.25rem;
-}
-
-.peg {
-  width: 0.75rem;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #d0d0d0;
-  border: 2px solid #444;
 }
 
 .controls {
