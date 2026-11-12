@@ -3,6 +3,8 @@ import confetti from "canvas-confetti";
 import { ref } from "vue";
 import ColorPalette from "./ColorPalette.vue";
 import GameRowVue from "./GameRow.vue";
+import GameOverModal from "./GameOverModal.vue";
+import GameStats from "./GameStats.vue";
 
 const colors = ["red", "blue", "green", "yellow", "black", "white"];
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
@@ -18,6 +20,14 @@ const allFeedback = ref([]); // whitePegs and blackPegs for each guess
 const activeRow = ref(1);
 // end-of-game modal: { type: 'win' | 'lose', text } or null when hidden
 const gameMessage = ref(null);
+// scores holds previous scores; need '[]' rather than [] because JSON.parse expects a string
+// if localStorage is null, or an empty string, it falls back to the empty array
+const scores = ref(JSON.parse(localStorage.getItem("scores") || "[]"));
+
+function clearStats() {
+  localStorage.removeItem("scores");
+  scores.value = [];
+}
 
 function celebrate() {
   confetti({
@@ -35,11 +45,6 @@ function selectColor(color) {
     currentGuess.value[index] = color;
   }
 }
-
-// clear a specific slot in currentGuess (set it back to null)
-// function clearSlot(index) {
-//   currentGuess.value[index] = null;
-// }
 
 function handleClearSlot(row, slot) {
   if (row === activeRow.value - 1) {
@@ -86,13 +91,15 @@ function checkGuess() {
   }
   // save the feedback for this guess
   allFeedback.value.push({ blackPegs, whitePegs });
-  // if the guess is correct, celebrate with the win modal
+  // if the guess is correct, celebrate with the win modal, and add # guesses it took player to scores array
   if (blackPegs === 4) {
     celebrate();
     gameMessage.value = {
       type: "win",
       text: "Congratulations! You've cracked the code!",
     };
+    scores.value.push(allGuesses.value.length); //allGuesses.values.length==number of turns
+    localStorage.setItem("scores", JSON.stringify(scores.value));
     return;
   }
   // if the guess is incorrect and user has used all 10 guesses, show the game over modal
@@ -157,15 +164,15 @@ function newGame() {
       </button>
     </div>
 
-    <!-- end-of-game modal (replaces the old alert boxes) -->
-    <div v-if="gameMessage" class="overlay">
-      <div class="modal">
-        <!-- falling confetti, only when the player wins -->
+    <!-- Statistics summary section -->
+    <GameStats :scores="scores" />
+    <button @click="clearStats" class="reset-btn">Reset Stats</button>
 
-        <p class="modal-text">{{ gameMessage.text }}</p>
-        <button class="check" @click="gameMessage = null">OK</button>
-      </div>
-    </div>
+    <!-- end-of-game modal (replaces the old alert boxes) -->
+    <GameOverModal
+      :gameMessage="gameMessage"
+      @modalClick="gameMessage = null"
+    />
   </main>
 </template>
 
@@ -245,27 +252,14 @@ function newGame() {
   cursor: pointer;
 }
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal {
-  position: relative;
-  overflow: hidden;
-  background: #fff;
-  border-radius: 0.75rem;
-  padding: 1.5rem 2rem;
-  max-width: 20rem;
-  text-align: center;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-}
-
-.modal-text {
-  margin: 0 0 1rem;
+.reset-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #555;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  float: right;
 }
 </style>
