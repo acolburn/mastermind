@@ -7,13 +7,38 @@ import GameOverModal from "./GameOverModal.vue";
 import GameStats from "./GameStats.vue";
 
 const colors = ["red", "blue", "green", "yellow", "black", "white"];
-const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
+
+// 1. The Mulberry32 generator function
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), t | 1);
+    r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// 2. Check URL for a seed, or create a random one
+const params = new URLSearchParams(window.location.search);
+const seedParam = params.get("seed");
+let gameSeed = seedParam
+  ? parseInt(seedParam, 10)
+  : Math.floor(Math.random() * 1000000);
+
+// 3. Create our generator and update getRandomColor
+let randomNumberGenerator = mulberry32(gameSeed);
+const getRandomColor = () =>
+  colors[Math.floor(randomNumberGenerator() * colors.length)];
+
+// 4. Your existing secretCode ref uses getRandomColor() automatically!
 const secretCode = ref([
   getRandomColor(),
   getRandomColor(),
   getRandomColor(),
   getRandomColor(),
 ]);
+
 const currentGuess = ref([null, null, null, null]);
 const allGuesses = ref([]);
 const allFeedback = ref([]); // whitePegs and blackPegs for each guess
@@ -23,6 +48,21 @@ const gameMessage = ref(null);
 // scores holds previous scores; need '[]' rather than [] because JSON.parse expects a string
 // if localStorage is null, or an empty string, it falls back to the empty array
 const scores = ref(JSON.parse(localStorage.getItem("scores") || "[]"));
+
+function shareGame() {
+  // 1. Build the full URL using the current website address and our gameSeed
+  const shareUrl = `${window.location.origin}${window.location.pathname}?seed=${gameSeed}`;
+
+  // 2. Copy it to the player's clipboard
+  navigator.clipboard
+    .writeText(shareUrl)
+    .then(() => {
+      alert("Challenge link copied to clipboard! Send it to a friend.");
+    })
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
+    });
+}
 
 function clearStats() {
   localStorage.removeItem("scores");
@@ -118,17 +158,24 @@ function checkGuess() {
 }
 
 function newGame() {
+  // Generate a brand new random seed for this new game
+  gameSeed = Math.floor(Math.random() * 1000000);
+  // Re-initialize our RNG generator with the new seed
+  randomNumberGenerator = mulberry32(gameSeed);
   // reset the game state
   currentGuess.value = [null, null, null, null];
   allGuesses.value = [];
   allFeedback.value = [];
   activeRow.value = 1;
+  // generate new secretCode
   secretCode.value = [
     getRandomColor(),
     getRandomColor(),
     getRandomColor(),
     getRandomColor(),
   ];
+  // Clear the ?seed= from the browser URL bar without reloading the page
+  window.history.pushState({}, "", window.location.pathname);
 }
 </script>
 
@@ -162,6 +209,7 @@ function newGame() {
       <button class="check" style="padding: 0.5rem 6rem" @click="newGame">
         New Game
       </button>
+      <button class="check" @click="shareGame">Share Challenge</button>
     </div>
 
     <!-- Statistics summary section -->
