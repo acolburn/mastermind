@@ -1,6 +1,6 @@
 <script setup>
 import confetti from "canvas-confetti";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import ColorPalette from "./ColorPalette.vue";
 import GameRowVue from "./GameRow.vue";
 import GameOverModal from "./GameOverModal.vue";
@@ -38,6 +38,11 @@ const secretCode = ref([
   getRandomColor(),
   getRandomColor(),
 ]);
+
+const isChallengeMode = computed(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.has("seed");
+});
 
 const currentGuess = ref([null, null, null, null]);
 const allGuesses = ref([]);
@@ -212,6 +217,10 @@ function newGame() {
       <button class="check" @click="shareGame">Share Challenge</button>
     </div>
 
+    <div v-if="isChallengeMode" class="challenge-banner">
+      <span>🎯 Challenge Mode Active</span>
+    </div>
+
     <!-- Statistics summary section -->
     <GameStats :scores="scores" />
     <button @click="clearStats" class="reset-btn">Reset Stats</button>
@@ -236,9 +245,24 @@ function newGame() {
   background-color: #c8bba9;
 }
 
+.challenge-banner {
+  background-color: #e6dfd3; /* Soft earthy background */
+  border: 1px solid #d4c4b0;
+  color: #4a453e;
+  padding: 0.5rem 1rem;
+  width: 97%;
+  border-radius: 0.375rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
 .title {
   margin: 0;
   font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .board {
