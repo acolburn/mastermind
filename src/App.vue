@@ -5,6 +5,7 @@ import ColorPalette from "./ColorPalette.vue";
 import GameRowVue from "./GameRow.vue";
 import GameOverModal from "./GameOverModal.vue";
 import GameStats from "./GameStats.vue";
+import AddScoreModal from "./AddScoreModal.vue";
 
 const colors = ["red", "blue", "green", "yellow", "black", "white"];
 
@@ -53,6 +54,8 @@ const gameMessage = ref(null);
 // scores holds previous scores; need '[]' rather than [] because JSON.parse expects a string
 // if localStorage is null, or an empty string, it falls back to the empty array
 const scores = ref(JSON.parse(localStorage.getItem("scores") || "[]"));
+
+const showAddScoreModal = ref(false);
 
 function shareGame() {
   // 1. Build the full URL using the current website address and our gameSeed
@@ -182,6 +185,12 @@ function newGame() {
   // Clear the ?seed= from the browser URL bar without reloading the page
   window.history.pushState({}, "", window.location.pathname);
 }
+
+function handleAddScore(score) {
+  scores.value.push(score);
+  localStorage.setItem("scores", JSON.stringify(scores.value));
+  showAddScoreModal.value = false;
+}
 </script>
 
 <template>
@@ -223,12 +232,24 @@ function newGame() {
 
     <!-- Statistics summary section -->
     <GameStats :scores="scores" />
-    <button @click="clearStats" class="reset-btn">Reset Stats</button>
+    <div class="stats-buttons">
+      <button @click="showAddScoreModal = true" class="add-score-btn">
+        + Add Score
+      </button>
+      <button @click="clearStats" class="reset-btn">Reset Stats</button>
+    </div>
 
     <!-- end-of-game modal (replaces the old alert boxes) -->
     <GameOverModal
       :gameMessage="gameMessage"
       @modalClick="gameMessage = null"
+    />
+
+    <!-- Modal for manually adding a score -->
+    <AddScoreModal
+      :isOpen="showAddScoreModal"
+      @addScore="handleAddScore"
+      @close="showAddScoreModal = false"
     />
   </main>
 </template>
@@ -333,5 +354,29 @@ function newGame() {
   border-radius: 0.25rem;
   cursor: pointer;
   float: right;
+}
+
+.stats-buttons {
+  width: 97%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.add-score-btn {
+  background: #333;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  flex: 1;
+  font-weight: 500;
+}
+
+.add-score-btn:hover {
+  background: #555;
 }
 </style>
